@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NetPulse — Flutter Web Mobile Emulator (Google Chrome)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: radial-gradient(circle at top, #172554 0%, #090D16 65%);
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+    }
+    .phone-frame {
+      width: 420px;
+      max-width: 100%;
+      height: 820px;
+      border-radius: 44px;
+      border: 10px solid #1E293B;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.75), 0 0 0 2px #334155;
+      background-color: #0B1120;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      transition: all 0.25s ease;
+    }
+    .DesktopMode .phone-frame {
+      width: 100%;
+      max-width: 960px;
+      height: auto;
+      min-height: 760px;
+      border-radius: 20px;
+      border-width: 2px;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="p-3 md:p-6 flex flex-col items-center">
+
+  <!-- Top Emulator Toolbar -->
+  <div class="w-full max-w-4xl mb-4 px-4 py-2.5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+    <div class="flex items-center gap-3">
+      <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+      <div>
+        <div class="text-xs font-bold text-slate-100 flex items-center gap-2">
+          <span>Flutter Web Emulator — Google Chrome</span>
+          <span id="backendStatusBadge" class="px-2 py-0.5 rounded-full text-xs font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+            Checking Dart Engine...
+          </span>
+        </div>
+        <div class="text-xs text-slate-400">
+          Workspace: <code class="text-cyan-400">network_diagnostic_toolkit</code>
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="toggleViewportMode()" id="viewportToggleBtn"
+        class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+        🖥️ Switch to Wide View
+      </button>
+    </div>
+  </div>
+
+  <!-- Smartphone Emulator Frame -->
+  <div id="emulatorWrapper" class="w-full flex justify-center">
+    <div class="phone-frame">
+
+      <!-- Android / Mobile Status Bar -->
+      <div class="px-6 pt-3 pb-2 bg-[#0B1120] flex items-center justify-between text-xs text-slate-400 select-none border-b border-slate-800/60">
+        <span id="phoneClock" class="font-mono font-semibold text-slate-200">23:45</span>
+        <div class="w-20 h-4 bg-slate-950 rounded-full border border-slate-800"></div>
+        <div class="flex items-center gap-1.5 font-mono text-xs">
+          <span class="text-cyan-400">5G</span>
+          <span>Wi-Fi</span>
+          <span class="text-emerald-400">100%</span>
+        </div>
+      </div>
+
+      <!-- Flutter AppBar -->
+      <div class="px-4 py-3 bg-[#0B1120] border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/40 flex items-center justify-center text-cyan-400 font-bold text-sm">
+            NP
+          </div>
+          <div>
+            <div class="text-sm font-bold text-slate-100 leading-tight">NetPulse Toolkit</div>
+            <div class="text-xs text-slate-400">MTCNA / Cisco Field Utility</div>
+          </div>
+        </div>
+        <span class="px-2 py-0.5 rounded text-xs font-mono bg-slate-800 text-cyan-400 border border-slate-700">
+          v1.0
+        </span>
+      </div>
+
+      <!-- Scrollable Flutter Scaffold Body -->
+      <div class="flex-1 overflow-y-auto custom-scroll p-4 space-y-4 bg-[#0B1120]">
+
+        <!-- ==================== TAB 1: PING & PORT PROBE ==================== -->
+        <div id="tab-ping" class="space-y-4">
+          <div class="bg-[#151F32] border border-slate-700/80 rounded-2xl p-4 space-y-3.5">
+            <!-- Mode Switcher -->
+            <div class="grid grid-cols-2 gap-2">
+              <button id="modeBtn-icmp" onclick="setPingMode('icmp')"
+                class="p-2.5 rounded-xl text-left border border-cyan-500 bg-cyan-500/15 transition">
+                <div class="text-xs font-bold text-cyan-300">ICMP Echo</div>
+                <div class="text-xs text-slate-400">Layer 3 Ping</div>
+              </button>
+              <button id="modeBtn-tcp" onclick="setPingMode('tcpPort')"
+                class="p-2.5 rounded-xl text-left border border-slate-700 bg-slate-800/60 transition">
+                <div class="text-xs font-bold text-slate-200">TCP Port Probe</div>
+                <div class="text-xs text-slate-400">Winbox / SSH / API</div>
+              </button>
+            </div>
+
+            <!-- Quick Target Presets -->
+            <div>
+              <div class="text-xs font-semibold text-slate-400 mb-1.5">Quick Target Presets</div>
+              <div class="flex flex-wrap gap-1.5">
+                <button onclick="selectHostPreset('1.1.1.1', 53)" class="px-2.5 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800/80 hover:border-cyan-500 text-slate-200">
+                  1.1.1.1 (Cloudflare)
+                </button>
+                <button onclick="selectHostPreset('8.8.8.8', 53)" class="px-2.5 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800/80 hover:border-cyan-500 text-slate-200">
+                  8.8.8.8 (Google)
+                </button>
+                <button onclick="selectHostPreset('127.0.0.1', 8080)" class="px-2.5 py-1 rounded-lg text-xs border border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
+                  127.0.0.1 (Localhost)
+                </button>
+                <button onclick="selectHostPreset('192.168.88.1', 8291)" class="px-2.5 py-1 rounded-lg text-xs border border-cyan-500/40 bg-cyan-500/10 text-cyan-300">
+                  192.168.88.1 (MikroTik)
+                </button>
+              </div>
+            </div>
+
+            <!-- TCP Port Selector -->
+            <div id="tcpPortSection" class="hidden">
+              <div class="text-xs font-semibold text-slate-400 mb-1.5">Router / Server Port Preset</div>
+              <div class="flex flex-wrap gap-1.5">
+                <button onclick="selectPort(8291)" data-port="8291" class="port-chip px-2.5 py-1 rounded-lg text-xs border border-emerald-500 bg-emerald-500/15 text-emerald-300 font-mono">
+                  8291 Winbox
+                </button>
+                <button onclick="selectPort(8728)" data-port="8728" class="port-chip px-2.5 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800 font-mono text-slate-300">
+                  8728 API
+                </button>
+                <button onclick="selectPort(22)" data-port="22" class="port-chip px-2.5 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800 font-mono text-slate-300">
+                  22 SSH
+                </button>
+                <button onclick="selectPort(53)" data-port="53" class="port-chip px-2.5 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800 font-mono text-slate-300">
+                  53 DNS
+                </button>
+                <button onclick="selectPort(80)" data-port="80" class="port-chip px-2.5 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800 font-mono text-slate-300">
+                  80 HTTP
+                </button>
+                <button onclick="selectPort(443)" data-port="443" class="port-chip px-2.5 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800 font-mono text-slate-300">
+                  443 HTTPS
+                </button>
+                <button onclick="selectPort(8080)" data-port="8080" class="port-chip px-2.5 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800 font-mono text-slate-300">
+                  8080 Web
+                </button>
+              </div>
+            </div>
+
+            <!-- Input + Action -->
+            <div class="flex gap-2 pt-1">
+              <input id="pingHostInput" type="text" value="127.0.0.1"
+                class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 font-mono text-xs text-slate-100 focus:outline-none focus:border-cyan-400"
+                placeholder="IP / Hostname..." />
+              <button id="pingToggleBtn" onclick="togglePingStream()"
+                class="px-4 py-2.5 rounded-xl font-bold text-xs bg-cyan-500 text-slate-950 hover:bg-cyan-400 transition">
+                <span id="pingBtnLabel">PING</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Stats Cards -->
+          <div class="grid grid-cols-3 gap-2.5">
+            <div class="bg-[#151F32] border border-slate-700/80 rounded-xl p-3">
+              <div class="text-xs font-bold text-slate-400">AVG RTT</div>
+              <div id="statAvgRtt" class="text-base font-bold font-mono text-cyan-400 mt-1">-- ms</div>
+              <div id="statMinMax" class="text-xs text-slate-400 mt-0.5 truncate">Min/Max --</div>
+            </div>
+            <div class="bg-[#151F32] border border-slate-700/80 rounded-xl p-3">
+              <div class="text-xs font-bold text-slate-400">JITTER</div>
+              <div id="statJitter" class="text-base font-bold font-mono text-emerald-400 mt-1">-- ms</div>
+              <div id="statQuality" class="text-xs text-slate-400 mt-0.5 truncate">Idle</div>
+            </div>
+            <div class="bg-[#151F32] border border-slate-700/80 rounded-xl p-3">
+              <div class="text-xs font-bold text-slate-400">LOSS</div>
+              <div id="statLoss" class="text-base font-bold font-mono text-emerald-400 mt-1">0%</div>
+              <div id="statTxRx" class="text-xs text-slate-400 mt-0.5 truncate">Tx:0 Rx:0</div>
+            </div>
+          </div>
+
+          <!-- Live Stream Terminal -->
+          <div class="bg-[#070B14] border border-slate-800 rounded-2xl p-3.5">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div class="flex items-center gap-2">
+                <span id="streamDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+                <span id="consoleHeaderTitle" class="text-xs font-mono font-bold text-slate-400">
+                  LIVE ICMP STREAM TERMINAL
+                </span>
+              </div>
+              <button onclick="clearPingConsole()" class="text-xs text-cyan-400 hover:underline">Clear</button>
+            </div>
+            <div id="pingConsoleOutput" class="mt-2.5 space-y-1.5 font-mono text-xs max-h-56 overflow-y-auto custom-scroll">
+              <div class="text-slate-500 py-6 text-center">
+                Tekan PING untuk memulai streaming paket real-time.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== TAB 2: SUBNET / CIDR CALCULATOR ==================== -->
+        <div id="tab-subnet" class="hidden space-y-4">
+          <div class="bg-[#151F32] border border-slate-700/80 rounded-2xl p-4 space-y-3.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-300">IPv4 Address &amp; CIDR</span>
+              <span id="subnetBadge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                Class C • RFC 1918
+              </span>
+            </div>
+
+            <input id="subnetIpInput" type="text" value="192.168.88.1" oninput="recalcSubnet()"
+              class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 font-mono text-sm text-slate-100 focus:outline-none focus:border-cyan-400" />
+
+            <div>
+              <div class="flex justify-between text-xs font-semibold mb-1">
+                <span id="cidrLabelText" class="text-cyan-400 font-mono">Prefix: /24</span>
+                <span id="usableHostsBadge" class="text-emerald-400 font-mono">254 Usable Hosts</span>
+              </div>
+              <input id="cidrSlider" type="range" min="0" max="32" value="24" oninput="recalcSubnet()"
+                class="w-full accent-cyan-400 cursor-pointer" />
+            </div>
+
+            <div class="flex flex-wrap gap-1.5">
+              <button onclick="setCidrPreset(30)" class="px-2.5 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800 font-mono text-slate-200">/30 WAN</button>
+              <button onclick="setCidrPreset(29)" class="px-2.5 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800 font-mono text-slate-200">/29 Peering</button>
+              <button onclick="setCidrPreset(24)" class="px-2.5 py-1 rounded-lg text-xs border border-cyan-500/40 bg-cyan-500/15 font-mono text-cyan-300">/24 LAN</button>
+              <button onclick="setCidrPreset(22)" class="px-2.5 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800 font-mono text-slate-200">/22 Hotspot</button>
+              <button onclick="setCidrPreset(16)" class="px-2.5 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800 font-mono text-slate-200">/16 Core</button>
+            </div>
+
+            <div id="subnetErrorBox" class="hidden p-3 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs"></div>
+          </div>
+
+          <div class="bg-[#151F32] border border-slate-700/80 rounded-2xl p-4 space-y-2 text-xs">
+            <div class="font-bold text-slate-400 pb-1.5 border-b border-slate-700/80">SUBNET &amp; ROUTING DETAILS</div>
+            <div class="flex justify-between py-1">
+              <span class="text-slate-400">Network CIDR</span>
+              <span id="resNetworkCidr" class="font-mono font-bold text-cyan-400">192.168.88.0/24</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-slate-400">Subnet Mask</span>
+              <span id="resSubnetMask" class="font-mono font-semibold text-slate-100">255.255.255.0</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-slate-400">Wildcard Mask (OSPF/ACL)</span>
+              <span id="resWildcard" class="font-mono font-bold text-amber-400">0.0.0.255</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-slate-400">Broadcast</span>
+              <span id="resBroadcast" class="font-mono font-semibold text-slate-100">192.168.88.255</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-slate-400">Usable Range</span>
+              <span id="resHostRange" class="font-mono font-semibold text-emerald-400">192.168.88.1 - 192.168.88.254</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-slate-400">Scope</span>
+              <span id="resScope" class="font-semibold text-slate-200 text-right">Private (RFC 1918)</span>
+            </div>
+          </div>
+
+          <div class="bg-[#070B14] border border-slate-800 rounded-2xl p-4 space-y-2.5 text-xs">
+            <div class="font-bold text-cyan-400">ROUTER CLI SNIPPETS</div>
+            <div>
+              <div class="text-slate-400 mb-0.5">MikroTik RouterOS:</div>
+              <div id="cliMikrotik" class="font-mono text-emerald-400 select-all bg-slate-900/90 p-2 rounded border border-slate-800">/ip address add address=192.168.88.1/24 interface=ether2</div>
+            </div>
+            <div>
+              <div class="text-slate-400 mb-0.5">Cisco IOS OSPF:</div>
+              <div id="cliCisco" class="font-mono text-amber-400 select-all bg-slate-900/90 p-2 rounded border border-slate-800">network 192.168.88.0 0.0.0.255 area 0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== TAB 3: HTTP STATUS CHECKER ==================== -->
+        <div id="tab-http" class="hidden space-y-4">
+          <div class="bg-[#151F32] border border-slate-700/80 rounded-2xl p-4 space-y-3.5">
+            <div class="text-xs font-semibold text-slate-400">Preset Endpoints &amp; Skenario Error</div>
+            <div class="flex flex-wrap gap-1.5">
+              <button onclick="selectHttpPreset('https://one.one.one.one')" class="px-2.5 py-1 rounded-lg text-xs border border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
+                Cloudflare (200)
+              </button>
+              <button onclick="selectHttpPreset('https://dns.google')" class="px-2.5 py-1 rounded-lg text-xs border border-cyan-500/40 bg-cyan-500/10 text-cyan-300">
+                Google DNS
+              </button>
+              <button onclick="selectHttpPreset('http://127.0.0.1:8080/api/health')" class="px-2.5 py-1 rounded-lg text-xs border border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
+                Local Dart Server
+              </button>
+              <button onclick="selectHttpPreset('https://10.255.255.1:8443')" class="px-2.5 py-1 rounded-lg text-xs border border-red-500/40 bg-red-500/10 text-red-300">
+                Timeout Test
+              </button>
+              <button onclick="selectHttpPreset('https://unregistered-router.lan')" class="px-2.5 py-1 rounded-lg text-xs border border-amber-500/40 bg-amber-500/10 text-amber-300">
+                DNS Error Test
+              </button>
+            </div>
+
+            <div class="flex gap-2">
+              <select id="httpMethodSelect" class="px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono font-bold text-cyan-400">
+                <option value="HEAD">HEAD</option>
+                <option value="GET">GET</option>
+              </select>
+              <select id="httpTimeoutSelect" class="px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-slate-200">
+                <option value="3">Timeout 3s</option>
+                <option value="5" selected>Timeout 5s</option>
+                <option value="10">Timeout 10s</option>
+              </select>
+            </div>
+
+            <div class="flex gap-2">
+              <input id="httpUrlInput" type="text" value="https://one.one.one.one"
+                class="flex-1 px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 font-mono text-xs text-slate-100 focus:outline-none focus:border-cyan-400" />
+              <button onclick="runHttpCheck()"
+                class="px-4 py-2.5 rounded-xl font-bold text-xs bg-cyan-500 text-slate-950 hover:bg-cyan-400 transition">
+                CHECK
+              </button>
+            </div>
+          </div>
+
+          <div id="httpResultContainer" class="bg-[#151F32] border border-slate-700/80 rounded-2xl p-4 text-xs text-slate-400 text-center">
+            Pilih endpoint atau masukkan URL, lalu tekan <strong>CHECK</strong>.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Flutter BottomNavigationBar -->
+      <div class="bg-[#151F32] border-t border-slate-800 grid grid-cols-3 py-2 px-2 select-none">
+        <button id="tabBtn-ping" onclick="switchTab('ping')" class="flex flex-col items-center py-1 text-cyan-400 font-semibold text-xs">
+          <span>📡</span>
+          <span class="mt-0.5">Ping &amp; Probe</span>
+        </button>
+        <button id="tabBtn-subnet" onclick="switchTab('subnet')" class="flex flex-col items-center py-1 text-slate-400 font-semibold text-xs">
+          <span>🧮</span>
+          <span class="mt-0.5">Subnet / CIDR</span>
+        </button>
+        <button id="tabBtn-http" onclick="switchTab('http')" class="flex flex-col items-center py-1 text-slate-400 font-semibold text-xs">
+          <span>🌐</span>
+          <span class="mt-0.5">HTTP Status</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let isDartBackendAlive = false;
+    let isWideView = false;
+
+    async function checkBackendHealth() {
+      const badge = document.getElementById('backendStatusBadge');
+      try {
+        const res = await fetch('/api/health');
+        if (res.ok) {
+          isDartBackendAlive = true;
+          badge.textContent = '● Dart SDK Live Engine Active';
+          badge.className = 'px-2 py-0.5 rounded-full text-xs font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+          return;
+        }
+      } catch (_) {}
+      isDartBackendAlive = false;
+      badge.textContent = '● Demo Mode (Simulated Data)';
+      badge.className = 'px-2 py-0.5 rounded-full text-xs font-mono bg-amber-500/20 text-amber-300 border border-amber-500/40';
+    }
+
+    function toggleViewportMode() {
+      isWideView = !isWideView;
+      document.body.classList.toggle('DesktopMode', isWideView);
+      document.getElementById('viewportToggleBtn').textContent = isWideView
+        ? '📱 Switch to Phone Frame'
+        : '🖥️ Switch to Wide View';
+    }
+
+    function switchTab(tabName) {
+      ['ping', 'subnet', 'http'].forEach(t => {
+        document.getElementById('tab-' + t).classList.toggle('hidden', t !== tabName);
+        const btn = document.getElementById('tabBtn-' + t);
+        btn.className = t === tabName
+          ? 'flex flex-col items-center py-1 text-cyan-400 font-semibold text-xs'
+          : 'flex flex-col items-center py-1 text-slate-400 font-semibold text-xs';
+      });
+    }
+
+    // ================= TAB 1: PING & PORT PROBE =================
+    let pingMode = 'icmp';
+    let selectedPort = 8291;
+    let pingInterval = null;
+    let pingSeq = 0;
+    let pingPackets = [];
+
+    function setPingMode(mode) {
+      pingMode = mode;
+      document.getElementById('modeBtn-icmp').className = mode === 'icmp'
+        ? 'p-2.5 rounded-xl text-left border border-cyan-500 bg-cyan-500/15 transition'
+        : 'p-2.5 rounded-xl text-left border border-slate-700 bg-slate-800/60 transition';
+      document.getElementById('modeBtn-tcp').className = mode === 'tcpPort'
+        ? 'p-2.5 rounded-xl text-left border border-cyan-500 bg-cyan-500/15 transition'
+        : 'p-2.5 rounded-xl text-left border border-slate-700 bg-slate-800/60 transition';
+      document.getElementById('tcpPortSection').classList.toggle('hidden', mode !== 'tcpPort');
+      document.getElementById('consoleHeaderTitle').textContent = mode === 'icmp'
+        ? 'LIVE ICMP STREAM TERMINAL'
+        : 'LIVE TCP PORT PROBE (PORT ' + selectedPort + ')';
+    }
+
+    function selectHostPreset(host, port) {
+      document.getElementById('pingHostInput').value = host;
+      selectPort(port);
+    }
+
+    function selectPort(port) {
+      selectedPort = port;
+      document.querySelectorAll('.port-chip').forEach(btn => {
+        const p = parseInt(btn.getAttribute('data-port'), 10);
+        btn.className = p === port
+          ? 'port-chip px-2.5 py-1 rounded-lg text-xs border border-emerald-500 bg-emerald-500/15 text-emerald-300 font-mono'
+          : 'port-chip px-2.5 py-1 rounded-lg text-xs border border-slate-700 bg-slate-800 font-mono text-slate-300';
+      });
+      if (pingMode === 'tcpPort') {
+        document.getElementById('consoleHeaderTitle').textContent = 'LIVE TCP PORT PROBE (PORT ' + selectedPort + ')';
+      }
+    }
+
+    function togglePingStream() {
+      if (pingInterval) {
+        stopPingStream();
+      } else {
+        startPingStream();
+      }
+    }
+
+    function startPingStream() {
+      const host = document.getElementById('pingHostInput').value.trim() || '127.0.0.1';
+      pingSeq = 0;
+      pingPackets = [];
+      document.getElementById('pingConsoleOutput').innerHTML = '';
+      const btn = document.getElementById('pingToggleBtn');
+      btn.className = 'px-4 py-2.5 rounded-xl font-bold text-xs bg-red-500 text-white hover:bg-red-400 transition';
+      document.getElementById('pingBtnLabel').textContent = 'STOP';
+      document.getElementById('streamDot').className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+
+      emitNextPingPacket(host);
+      pingInterval = setInterval(() => emitNextPingPacket(host), 900);
+    }
+
+    function stopPingStream() {
+      if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+      }
+      const btn = document.getElementById('pingToggleBtn');
+      btn.className = 'px-4 py-2.5 rounded-xl font-bold text-xs bg-cyan-500 text-slate-950 hover:bg-cyan-400 transition';
+      document.getElementById('pingBtnLabel').textContent = 'PING';
+      document.getElementById('streamDot').className = 'w-2 h-2 rounded-full bg-slate-500';
+    }
+
+    async function emitNextPingPacket(host) {
+      pingSeq++;
+      const currentSeq = pingSeq;
+      let pkt = null;
+
+      if (isDartBackendAlive) {
+        try {
+          const res = await fetch(`/api/ping?host=${encodeURIComponent(host)}&mode=${pingMode}&port=${selectedPort}&seq=${currentSeq}`);
+          if (res.ok) {
+            pkt = await res.json();
+          }
+        } catch (_) {}
+      }
+
+      if (!pkt) {
+        const isUnreachable = host.includes('10.255.255') || host.includes('invalid');
+        const isSuccess = isUnreachable ? false : (Math.random() > 0.05);
+        const rtt = isSuccess ? +(2.2 + Math.random() * 8.5).toFixed(1) : null;
+        pkt = {
+          sequence: currentSeq,
+          isSuccess,
+          rttMs: rtt,
+          cliLine: isSuccess
+            ? (pingMode === 'icmp'
+                ? `64 bytes from ${host}: icmp_seq=${currentSeq} ttl=64 time=${rtt} ms`
+                : `seq=${currentSeq} tcp://${host}:${selectedPort} connected time=${rtt} ms`)
+            : `seq=${currentSeq} target=${host} status=TIMEOUT (Request timed out)`
+        };
+      }
+
+      pingPackets.push({ seq: pkt.sequence, isSuccess: pkt.isSuccess, rtt: pkt.rttMs });
+      renderPingStats();
+
+      const consoleEl = document.getElementById('pingConsoleOutput');
+      const line = document.createElement('div');
+      line.className = pkt.isSuccess ? 'text-emerald-400' : 'text-red-400';
+      line.textContent = pkt.cliLine;
+      consoleEl.prepend(line);
+
+      if (currentSeq >= 20) {
+        stopPingStream();
+      }
+    }
+
+    function renderPingStats() {
+      const tx = pingPackets.length;
+      const okRtts = pingPackets.filter(p => p.isSuccess && p.rtt != null).map(p => p.rtt);
+      const rx = okRtts.length;
+      const loss = tx > 0 ? Math.round(((tx - rx) / tx) * 100) : 0;
+
+      document.getElementById('statLoss').textContent = loss + '%';
+      document.getElementById('statLoss').className = 'text-base font-bold font-mono mt-1 ' + (loss > 0 ? 'text-red-400' : 'text-emerald-400');
+      document.getElementById('statTxRx').textContent = `Tx:${tx} Rx:${rx}`;
+
+      if (okRtts.length === 0) {
+        document.getElementById('statAvgRtt').textContent = '-- ms';
+        document.getElementById('statMinMax').textContent = 'Timeout';
+        document.getElementById('statJitter').textContent = '-- ms';
+        document.getElementById('statQuality').textContent = 'Unreachable';
+        return;
+      }
+
+      const min = Math.min(...okRtts).toFixed(1);
+      const max = Math.max(...okRtts).toFixed(1);
+      const avg = (okRtts.reduce((a, b) => a + b, 0) / okRtts.length).toFixed(1);
+      let jitter = 0;
+      if (okRtts.length > 1) {
+        let diffSum = 0;
+        for (let i = 1; i < okRtts.length; i++) diffSum += Math.abs(okRtts[i] - okRtts[i - 1]);
+        jitter = (diffSum / (okRtts.length - 1)).toFixed(1);
+      }
+
+      document.getElementById('statAvgRtt').textContent = `${avg} ms`;
+      document.getElementById('statMinMax').textContent = `${min}/${max} ms`;
+      document.getElementById('statJitter').textContent = `${jitter} ms`;
+      document.getElementById('statQuality').textContent = loss > 5 ? 'Degraded' : 'Excellent';
+    }
+
+    function clearPingConsole() {
+      stopPingStream();
+      pingPackets = [];
+      document.getElementById('pingConsoleOutput').innerHTML =
+        '<div class="text-slate-500 py-6 text-center">Log dibersihkan.</div>';
+    }
+
+    // ================= TAB 2: SUBNET CALCULATOR =================
+    function setCidrPreset(prefix) {
+      document.getElementById('cidrSlider').value = prefix;
+      recalcSubnet();
+    }
+
+    function intToIpv4(intVal) {
+      return [(intVal >>> 24) & 255, (intVal >>> 16) & 255, (intVal >>> 8) & 255, intVal & 255].join('.');
+    }
+
+    async function recalcSubnet() {
+      const rawIp = document.getElementById('subnetIpInput').value.trim();
+      const prefix = parseInt(document.getElementById('cidrSlider').value, 10);
+      document.getElementById('cidrLabelText').textContent = `Prefix: /${prefix}`;
+
+      if (isDartBackendAlive) {
+        try {
+          const res = await fetch(`/api/subnet?ip=${encodeURIComponent(rawIp)}&prefix=${prefix}`);
+          const data = await res.json();
+          const errBox = document.getElementById('subnetErrorBox');
+          if (!res.ok || data.error) {
+            errBox.textContent = data.error || 'Input tidak valid';
+            errBox.classList.remove('hidden');
+            return;
+          }
+          errBox.classList.add('hidden');
+          document.getElementById('usableHostsBadge').textContent = `${data.usableHosts} Usable Hosts`;
+          document.getElementById('subnetBadge').textContent = `${data.ipClass} • ${data.isPrivateRfc1918 ? 'RFC 1918' : 'Public'}`;
+          document.getElementById('resNetworkCidr').textContent = data.networkCidr;
+          document.getElementById('resSubnetMask').textContent = data.subnetMask;
+          document.getElementById('resWildcard').textContent = data.wildcardMask;
+          document.getElementById('resBroadcast').textContent = data.broadcastAddress;
+          document.getElementById('resHostRange').textContent = `${data.firstUsableHost} - ${data.lastUsableHost}`;
+          document.getElementById('resScope').textContent = data.scopeDescription;
+          document.getElementById('cliMikrotik').textContent = data.mikrotikAddressSnippet;
+          document.getElementById('cliCisco').textContent = data.ciscoOspfSnippet;
+          return;
+        } catch (_) {}
+      }
+
+      // Fallback local calculation
+      const errBox = document.getElementById('subnetErrorBox');
+      const parts = rawIp.split('.');
+      if (parts.length !== 4 || parts.some(p => p === '' || isNaN(p) || +p < 0 || +p > 255)) {
+        errBox.textContent = `Format IPv4 "${rawIp}" tidak valid.`;
+        errBox.classList.remove('hidden');
+        return;
+      }
+      errBox.classList.add('hidden');
+      const o = parts.map(Number);
+      const ipInt = (((o[0] << 24) >>> 0) | (o[1] << 16) | (o[2] << 8) | o[3]) >>> 0;
+      const maskInt = prefix === 0 ? 0 : ((0xFFFFFFFF << (32 - prefix)) >>> 0);
+      const wildcardInt = (~maskInt) >>> 0;
+      const netInt = (ipInt & maskInt) >>> 0;
+      const bcastInt = (netInt | wildcardInt) >>> 0;
+      const total = prefix === 0 ? 4294967296 : Math.pow(2, 32 - prefix);
+      const usable = prefix === 32 ? 1 : (prefix === 31 ? 2 : total - 2);
+      const firstHost = prefix >= 31 ? intToIpv4(netInt) : intToIpv4((netInt + 1) >>> 0);
+      const lastHost = prefix === 32 ? intToIpv4(netInt) : (prefix === 31 ? intToIpv4(bcastInt) : intToIpv4((bcastInt - 1) >>> 0));
+
+      document.getElementById('usableHostsBadge').textContent = `${usable} Usable Hosts`;
+      document.getElementById('resNetworkCidr').textContent = `${intToIpv4(netInt)}/${prefix}`;
+      document.getElementById('resSubnetMask').textContent = intToIpv4(maskInt);
+      document.getElementById('resWildcard').textContent = intToIpv4(wildcardInt);
+      document.getElementById('resBroadcast').textContent = intToIpv4(bcastInt);
+      document.getElementById('resHostRange').textContent = `${firstHost} - ${lastHost}`;
+      document.getElementById('cliMikrotik').textContent = `/ip address add address=${firstHost}/${prefix} interface=ether2`;
+      document.getElementById('cliCisco').textContent = `network ${intToIpv4(netInt)} ${intToIpv4(wildcardInt)} area 0`;
+    }
+
+    // ================= TAB 3: HTTP STATUS CHECKER =================
+    function selectHttpPreset(url) {
+      document.getElementById('httpUrlInput').value = url;
+      runHttpCheck();
+    }
+
+    async function runHttpCheck() {
+      const rawUrl = document.getElementById('httpUrlInput').value.trim();
+      const method = document.getElementById('httpMethodSelect').value;
+      const timeoutSec = document.getElementById('httpTimeoutSelect').value;
+      const container = document.getElementById('httpResultContainer');
+
+      container.innerHTML = `<div class="py-6 text-cyan-400 font-mono text-xs">Mengirim ${method} request ke ${rawUrl}...</div>`;
+
+      if (isDartBackendAlive) {
+        try {
+          const res = await fetch(`/api/http-check?url=${encodeURIComponent(rawUrl)}&method=${method}&timeout=${timeoutSec}`);
+          const data = await res.json();
+          if (data.errorTitle) {
+            container.innerHTML = `
+              <div class="text-left space-y-2 border border-red-500/50 rounded-xl p-3 bg-red-500/10">
+                <div class="flex justify-between items-center">
+                  <span class="font-bold text-red-400 text-xs">${data.errorTitle}</span>
+                  <span class="font-mono text-xs text-slate-400">${data.responseTimeMs} ms</span>
+                </div>
+                <p class="text-xs text-slate-200">${data.errorMessage}</p>
+                <div class="p-2.5 rounded-lg bg-slate-900 border border-amber-500/40 text-xs text-amber-300">
+                  <strong>Hint:</strong> ${data.troubleshootingHint}
+                </div>
+              </div>
+            `;
+            return;
+          }
+
+          const headersHtml = Object.entries(data.headers || {}).slice(0, 6).map(([k, v]) => `
+            <div class="flex justify-between py-1 border-b border-slate-800 font-mono text-xs">
+              <span class="text-cyan-400">${k}</span>
+              <span class="text-slate-200 truncate max-w-[180px]">${v}</span>
+            </div>
+          `).join('');
+
+          container.innerHTML = `
+            <div class="text-left space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="px-2.5 py-1 rounded-lg border border-emerald-500 bg-emerald-500/15 text-emerald-300 font-mono font-bold text-xs">
+                  HTTP ${data.statusCode} ${data.reasonPhrase || ''}
+                </span>
+                <span class="font-mono font-bold text-xs text-cyan-400">${data.responseTimeMs} ms</span>
+              </div>
+              <p class="text-xs text-slate-200">${data.description}</p>
+              <div class="bg-slate-900 rounded-xl p-2.5 border border-slate-800">
+                ${headersHtml || '<div class="text-slate-500">No headers</div>'}
+              </div>
+            </div>
+          `;
+          return;
+        } catch (_) {}
+      }
+
+      // Demo mode (no Dart backend, e.g. hosted on Vercel):
+      // simulate per scenario, mirroring NetworkDiagnosticError mapping in lib/core.
+      await new Promise(r => setTimeout(r, rawUrl.includes('10.255.255') ? 1200 : 350));
+      const demoTag = '<div class="text-xs text-amber-300/80 mt-2">Demo mode — data simulasi (browser tidak bisa melakukan raw HTTP/ICMP lintas origin).</div>';
+
+      let errorCase = null;
+      if (rawUrl.includes('10.255.255')) {
+        errorCase = {
+          title: 'Request Timed Out (RTO)',
+          ms: timeoutSec * 1000,
+          msg: `Target tidak merespons dalam ${timeoutSec} detik.`,
+          hint: 'Periksa aturan firewall (drop rule pada chain input/forward), routing table menuju gateway, atau kondisi kongesti link.'
+        };
+      } else if (rawUrl.includes('.lan') || rawUrl.includes('unregistered')) {
+        errorCase = {
+          title: 'DNS Lookup Failed (NXDOMAIN / Timeout)',
+          ms: 21,
+          msg: 'Gagal menerjemahkan nama domain ke alamat IP.',
+          hint: 'Coba ping ke IP langsung (mis. 1.1.1.1). Jika berhasil, periksa konfigurasi IP > DNS pada router Anda.'
+        };
+      }
+
+      if (errorCase) {
+        container.innerHTML = `
+          <div class="text-left space-y-2 border border-red-500/50 rounded-xl p-3 bg-red-500/10">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-red-400 text-xs">${errorCase.title}</span>
+              <span class="font-mono text-xs text-slate-400">${errorCase.ms} ms</span>
+            </div>
+            <p class="text-xs text-slate-200">${errorCase.msg}</p>
+            <div class="p-2.5 rounded-lg bg-slate-900 border border-amber-500/40 text-xs text-amber-300">
+              <strong>Hint:</strong> ${errorCase.hint}
+            </div>
+          </div>${demoTag}`;
+        return;
+      }
+
+      const isLocal = rawUrl.includes('127.0.0.1') || rawUrl.includes('localhost');
+      const latency = isLocal ? 3 : Math.round(25 + Math.random() * 40);
+      const server = rawUrl.includes('google') ? 'HTTP server (GFE/2.0)' : (isLocal ? 'Dart HttpServer' : 'cloudflare');
+      container.innerHTML = `
+        <div class="text-left space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="px-2.5 py-1 rounded-lg border border-emerald-500 bg-emerald-500/15 text-emerald-300 font-mono font-bold text-xs">HTTP 200 OK</span>
+            <span class="font-mono font-bold text-xs text-cyan-400">${method} • ${latency} ms</span>
+          </div>
+          <p class="text-xs text-slate-200">OK — Server merespons dengan normal.</p>
+          <div class="bg-slate-900 rounded-xl p-2.5 border border-slate-800 font-mono text-xs">
+            <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-cyan-400">server</span><span class="text-slate-200">${server}</span></div>
+            <div class="flex justify-between py-1"><span class="text-cyan-400">content-type</span><span class="text-slate-200">text/html; charset=utf-8</span></div>
+          </div>
+        </div>${demoTag}`;
+    }
+
+    checkBackendHealth();
+    recalcSubnet();
+  </script>
+</body>
+</html>

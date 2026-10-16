@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "NetPulse (Web Emulator - Google Chrome via Dart Server)",
+      "request": "launch",
+      "type": "dart",
+      "program": "tool/web_emulator_server.dart",
+      "args": [
+        "--launch-chrome"
+      ]
+    },
+    {
+      "name": "NetPulse (Flutter Web - Google Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "chrome"
+    },
+    {
+      "name": "NetPulse (Run Automated Unit Tests)",
+      "request": "launch",
+      "type": "dart",
+      "program": "test/network_toolkit_test.dart"
+    }
+  ]
+}

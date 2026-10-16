@@ -1,0 +1,11 @@
+{
+  "name": "NetPulse — Network Diagnostic Toolkit",
+  "short_name": "NetPulse",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0B1120",
+  "theme_color": "#06B6D4",
+  "description": "Aplikasi Utilitas Jaringan (MTCNA / Cisco Field Utility) berbasis Flutter.",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false
+}

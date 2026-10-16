@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="NetPulse — Network Diagnostic Toolkit (Flutter Web)">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NetPulse — Network Diagnostic Toolkit</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body {
+      background-color: #0B1120;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <script src="flutter.js" defer></script>
+  <script>
+    window.addEventListener('load', function(ev) {
+      if (typeof _flutter !== 'undefined' && _flutter.loader) {
+        _flutter.loader.loadEntrypoint({
+          onEntrypointLoaded: function(engineInitializer) {
+            engineInitializer.initializeEngine().then(function(appRunner) {
+              appRunner.runApp();
+            });
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
