@@ -4,7 +4,7 @@ Aplikasi mobile ringan berbasis **Flutter** untuk melakukan *troubleshooting* ja
 
 ## Live Demo
 
-🔗 **[Coba demo interaktif](https://VERCEL_URL_HERE)**
+🔗 **[network-diagnostic-toolkit-netpulse.vercel.app](https://network-diagnostic-toolkit-netpulse.vercel.app/)**
 
 > Demo yang di-host adalah prototipe web interaktif (`preview/index.html`) dari UI aplikasi. Browser tidak bisa mengirim paket ICMP mentah atau request HTTP lintas origin, jadi demo memakai **data simulasi** (ditandai badge *Demo Mode*). Logika aslinya (`lib/services/`) bisa dijalankan secara nyata di lokal lewat `dart tool/web_emulator_server.dart --launch-chrome`.
 
